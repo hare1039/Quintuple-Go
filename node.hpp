@@ -8,17 +8,16 @@
 namespace quintuple_go
 {
 
+enum class player {ONE, TWO};
 class node
 {
-	enum class player {SELF, ENEMY};
 	position     _pos;
 	player       _player;
-	static state _state;
 
 	node *       _parent = nullptr;
 	int          _win;
 	int          _total;
-	std::multimap<int, std::unique_ptr<node>> _child;
+	std::multimap<int, std::unique_ptr<node>, std::greater<int>> _child;
 public:
 	node(position pos, player p): _pos{pos}, _player{p} {}
 
@@ -32,6 +31,7 @@ public:
 private:
 	double UCT();
 	int    score();
+	static state& state() { static state _s; return _s;}
 };
 
 	
