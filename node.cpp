@@ -19,6 +19,8 @@ int node::sum_dir(position start, dir first, dir second, dir scan) const
 	for (position i = 0; i != OUT_OF_BOUND; i = NAB[i][first])
 		for (position j = i; j != OUT_OF_BOUND; j = NAB[j][scan])
 		{
+			// ____ooox__o___x_xxoo__
+			// ___o__________o_______
 			if (_map[j] != flipped_player)
 				counter++;
 			else
@@ -27,7 +29,6 @@ int node::sum_dir(position start, dir first, dir second, dir scan) const
 			if (counter == 5)
 			{
 				total++;
-				counter--;
 			}
 		}
 	counter = 0;
@@ -76,6 +77,54 @@ void node::explore_node(position pos, dir direction, int step = 2)
 		_allocated_child.insert(beside);
 	}
 }
+
+//               avalable space, score of line
+// std::tuple<std::deque<position>, int>
+static
+auto node::scan_dir(state_view const & t_map,
+					player who,
+					position start,
+					dir accor,
+					dir direc,
+					int limit = -1) const
+{
+	std::array<std::list<position>, 6> layer;
+	player op = flip(who);
+	for (position p = start; p != OUT_OF_BOUND; p = NAB[p][accor])
+	{
+		int counter = 0, op_counter = 0;
+		
+		for (position walker = p; walker != OUT_OF_BOUND; walker = NAB[walker][direc])
+		{
+			player play = t_map[walker];
+			if (play == who)
+				counter++;
+
+			if (play == op)
+				op_counter++;
+			
+			if (limit > counter)
+				continue;
+
+			if (counter >= 5)
+				throw winner(who);
+			if (op_counter >= 5)
+				throw winner(op);
+			
+			layer[counter].push_back(walker);
+			limit = std::max(limit, counter);
+		}
+	}
+
+	for (auto it = layer.rbegin(); it != layer.rend(); --it)
+	{
+		if (not it->empty())
+			return std::make_tuple(*it, layer.rend() - it);
+	}
+	return std::make_tuple(std::list<position>{}, -1);
+}
+
+
 // public
 node& node::select()
 {
@@ -103,7 +152,39 @@ node& node::expand()
 
 player node::simulate()
 {
-	
+	state_view t_map{_map};
+	/*
+	  model:         UP,     UP_LEFT,      DOWN_LEFT,      DOWN,   DOWN_RIGHT,    UP_RIGHT
+	  accor:     8 LEFT, 0 LEFT_DOWN, 100 RIGHT_DOWN, 208 RIGHT, 216 RIGHT_UP, 116 LEFT_UP
+	  direc: RIGHT_DOWN,       RIGHT,       RIGHT_UP,   LEFT_UP,         LEFT,   LEFT_DOWN
+	 */
+	player cur = _player;
+	for (player p = winner(t_map); p != EMPTY; p = winner(t_map))
+	{
+		std::multimap<int, std::list<position>, std::greater<int>> avalable;
+
+		try
+		{
+			int limit = -1;
+			std::list<position> t;
+			std::tie(t, limit) = scan_dir(t_map, cur,   8,       LEFT, RIGHT_DOWN, limit);
+			avalable[limit] = t;
+			std::tie(t, limit) = scan_dir(t_map, cur,   0,  LEFT_DOWN,      RIGHT, limit);
+			avalable[limit] = t;
+			std::tie(t, limit) = scan_dir(t_map, cur, 100, RIGHT_DOWN,   RIGHT_UP, limit);
+			avalable[limit] = t;
+			std::tie(t, limit) = scan_dir(t_map, cur, 208,      RIGHT,    LEFT_UP, limit);
+			avalable[limit] = t;
+			std::tie(t, limit) = scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, limit);
+			avalable[limit] = t;
+			std::tie(t, limit) = scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, limit);
+			avalable[limit] = t;
+		}
+		catch (winner &w const)
+		{
+			return w.winner;
+		}
+	}
 }
 
 	
