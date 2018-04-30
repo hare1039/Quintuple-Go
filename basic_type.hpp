@@ -2,6 +2,7 @@
 #define __BASIC_TYPE_HPP__
 
 #include <array>
+#include <random>
 
 namespace quintuple_go
 {
@@ -11,8 +12,8 @@ using      position = int;
 enum class player {EMPTY, ONE, TWO};
 using      state    = std::array<player, MAP_SIZE>;
 
-enum      dir { LEFT_UP = 0, LEFT, LEFT_DOWN, RIGHT_DOWN, RIGHT, RIGHT_UP };
-constexpr int OUT_OF_BOUND = -1;
+enum       dir { LEFT_UP = 0, LEFT, LEFT_DOWN, RIGHT_DOWN, RIGHT, RIGHT_UP };
+constexpr  int OUT_OF_BOUND = -1;
 
 class neighbours
 {
@@ -20,11 +21,13 @@ class neighbours
 
 public:
 	neighbours(int lu, int l, int ld, int rd, int r, int ru): _neighbours{{lu, l, ld, rd, r, ru}} {}
-	int operator [] (dir d) {return _neighbours[d];}
+	int operator [] (dir d) const {return _neighbours[d];}
 };
 
-std::array<neighbours, MAP_SIZE> const NAB;
+extern std::array<neighbours, MAP_SIZE> const NAB;
 
+int rand_range(int start, int end);
+dir invert(dir d);
 }
 
 

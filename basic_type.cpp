@@ -220,7 +220,18 @@ std::array<neighbours, MAP_SIZE> const NAB = {
 	neighbours{ 203, 212,  -1,  -1, 214, 204 },
 	neighbours{ 204, 213,  -1,  -1, 215, 205 },
 	neighbours{ 205, 214,  -1,  -1, 216, 206 },
-	neighbours{ 206, 215,  -1,  -1,  -1, 207 }	
+	neighbours{ 206, 215,  -1,  -1,  -1, 207 }
 };
+
+
+int rand_range(int start, int end)
+{
+	static std::mt19937 eng{std::random_device{}()};
+	std::uniform_int_distribution<int> dist(start, end);
+	return dist(eng);
+}
+
+constexpr
+dir inverse(dir d) { return (d + 3) % 6;}
 
 }

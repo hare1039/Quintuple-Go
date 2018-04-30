@@ -15,9 +15,10 @@ public:
 			   std::pair<position, player> p,
 			   decltype(sp) m = decltype(sp){}): tpl{s},
 												 sp{m}   {sp.insert(p);}
-	player operator[] (int i) {return sp.find(i) != sp.end()? sp[i]: tpl[i];}
-	auto& get_sp() { return sp; }
-	state state() { state s; for (int i = 0; i < MAP_SIZE; i++) s[i] = (*this)[i]; return s;}
+	player operator[] (int i) { return sp.find(i) != sp.end()? sp[i]: tpl[i]; }
+	auto   insert(std::pair<position, player> & p) { return sp.insert(p); }
+	auto&  get_sp() { return sp; }
+	state  state()  { state s; for (int i = 0; i < MAP_SIZE; i++) s[i] = (*this)[i]; return s;}
 }
 
 #endif // __STATE_VIEW_HPP__

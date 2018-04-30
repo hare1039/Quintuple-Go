@@ -73,7 +73,7 @@ void node::explore_node(position pos, dir direction, int step = 2)
 		
 		auto p = std::unique_ptr<node>{new node{beside, flip(_player), _map.get_sp()}};
 		int rank = p->score();
-		_child[rank] = std::move(p);
+		_child.insert(std::make_pair(rank, std::move(p));
 		_allocated_child.insert(beside);
 	}
 }
@@ -81,47 +81,56 @@ void node::explore_node(position pos, dir direction, int step = 2)
 //               avalable space, score of line
 // std::tuple<std::deque<position>, int>
 static
-auto node::scan_dir(state_view const & t_map,
-					player who,
+void node::scan_dir(state_view const & t_map,
+					player me,
 					position start,
 					dir accor,
 					dir direc,
-					int limit = -1) const
+					std::array<int, MAP_SIZE> &score,
+					bool early_stop = false) const
 {
-	std::array<std::list<position>, 6> layer;
-	player op = flip(who);
-	for (position p = start; p != OUT_OF_BOUND; p = NAB[p][accor])
+	player op = flip(me);
+	for (position p = start;
+		 p != OUT_OF_BOUND || (early_stop && NAB[ NAB[p][accor] ][accor] == OUT_OF_BOUND);
+		 p = NAB[p][accor])
 	{
 		int counter = 0, op_counter = 0;
+		position walker = p;
+		dir i_direc = inverse(direc);
 		
-		for (position walker = p; walker != OUT_OF_BOUND; walker = NAB[walker][direc])
+		for (; NAB[walker][direc] != OUT_OF_BOUND; walker = NAB[walker][direc])
 		{
+			player prev = t_map[NAB[walker][i_direc]];
 			player play = t_map[walker];
-			if (play == who)
+			if ((prev == EMPTY && play == EMPTY) || (prev == OUT_OF_BOUND && play == EMPTY))
+				counter = 1;
+			else if (play == op)
+				counter = 0;
+			else
 				counter++;
 
-			if (play == op)
-				op_counter++;
-			
-			if (limit > counter)
-				continue;
-
 			if (counter >= 5)
-				throw winner(who);
-			if (op_counter >= 5)
-				throw winner(op);
+				throw winner(me);
+			score[walker] += counter;
+		}
+
+		counter = 0;
+		for (; NAB[walker][direc] != OUT_OF_BOUND; walker = NAB[walker][i_direc])
+		{
+			player prev = t_map[NAB[walker][direc]];
+			player play = t_map[walker];
+			if ((prev == EMPTY && play == EMPTY) || (prev == OUT_OF_BOUND && play == EMPTY))
+				counter = 1;
+			else if (play == op)
+				counter = 0;
+			else
+				counter++;
 			
-			layer[counter].push_back(walker);
-			limit = std::max(limit, counter);
+			if (counter >= 5)
+				throw winner(me);
+			score[walker] += counter;
 		}
 	}
-
-	for (auto it = layer.rbegin(); it != layer.rend(); --it)
-	{
-		if (not it->empty())
-			return std::make_tuple(*it, layer.rend() - it);
-	}
-	return std::make_tuple(std::list<position>{}, -1);
 }
 
 
@@ -159,33 +168,35 @@ player node::simulate()
 	  direc: RIGHT_DOWN,       RIGHT,       RIGHT_UP,   LEFT_UP,         LEFT,   LEFT_DOWN
 	 */
 	player cur = _player;
-	for (player p = winner(t_map); p != EMPTY; p = winner(t_map))
+	for (;;)
 	{
-		std::multimap<int, std::list<position>, std::greater<int>> avalable;
-
+		std::array<int, MAP_SIZE> score;
 		try
 		{
-			int limit = -1;
-			std::list<position> t;
-			std::tie(t, limit) = scan_dir(t_map, cur,   8,       LEFT, RIGHT_DOWN, limit);
-			avalable[limit] = t;
-			std::tie(t, limit) = scan_dir(t_map, cur,   0,  LEFT_DOWN,      RIGHT, limit);
-			avalable[limit] = t;
-			std::tie(t, limit) = scan_dir(t_map, cur, 100, RIGHT_DOWN,   RIGHT_UP, limit);
-			avalable[limit] = t;
-			std::tie(t, limit) = scan_dir(t_map, cur, 208,      RIGHT,    LEFT_UP, limit);
-			avalable[limit] = t;
-			std::tie(t, limit) = scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, limit);
-			avalable[limit] = t;
-			std::tie(t, limit) = scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, limit);
-			avalable[limit] = t;
+			scan_dir(t_map, cur,   8,       LEFT, RIGHT_DOWN, score);
+			scan_dir(t_map, cur,   0,  LEFT_DOWN,      RIGHT, score);
+			scan_dir(t_map, cur, 100, RIGHT_DOWN,   RIGHT_UP, score);
+			scan_dir(t_map, cur, 208,      RIGHT,    LEFT_UP, score, true);
+			scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, score, true);
+			scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, score, true);
 		}
 		catch (winner &w const)
 		{
 			return w.winner;
 		}
+		
+		try
+		{
+			position pos = *std::max_element(score.begin(), score.end());
+			t_map.insert(std::make_pair(pos, cur));
+			cur = flip(cur);
+		}
+		catch (...)
+		{
+			return EMPTY;
+		}
 	}
 }
 
-	
+
 }
