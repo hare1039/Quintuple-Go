@@ -5,6 +5,7 @@
 #include <memory>
 #include <cmath>
 #include <list>
+#include <set>
 
 #include "basic_type.hpp"
 #include "state_view.hpp"
@@ -26,37 +27,41 @@ class node
 public:
 	node(position pos,
 		 player p,
-		 state_view sv = state_view{state(), {-1, -1}}): _pos{pos},
-														 _player{p},
-														 _map{(sv)} {}
+		 state_view sv = state_view{get_state()}): _pos{pos},
+											   _player{p},
+											   _map{(sv)} {}
 
 	node&  select();
 	node&  expand();
 	player simulate();
-	node&  propagate();
-	void   set_state(state &s) { std::swap(state(), s); }
+	void   propagate(player winner);
+	void   set_state(state &s) { std::swap(get_state(), s); }
 
+	position best_child() const;
 private:
 	double UCT() const;
 	int    score() const;
+	double win_percentage() const {	return _total == 0? 0.0: _win / _total; }
 	int    sum_dir(position start, dir first, dir second, dir scan) const;
 	void   explore_node(position, dir, int);
-	// std::tuple<std::deque<position>, int>
-	struct winner : public exception
+	
+	struct winner : public std::exception
 	{
-		player winner;
+		player win;
 		winner() = default;
-		winner(player p): winner(p) {}
+		winner(player p): win(p) {}
 		const char * what () const noexcept { return "Found winner"; }
 	};
-	static auto scan_dir(state_view const & t_map,
-						 player who,
-						 position start,
-						 dir accor,
-						 dir direc,
-						 int limit = -1) const;
-	static player flip(player p) { return (p == EMPTY)? EMPTY: (p == ONE)? TWO: ONE;}
-	static state& state() { static state _s; return _s;}
+	static
+	void scan_dir(state_view const & t_map,
+				  player me,
+				  position start,
+				  dir accor,
+				  dir direc,
+				  std::array<int, MAP_SIZE> &score,
+				  bool early_stop = false);
+	static player flip(player p) { return (p == player::EMPTY)? player::EMPTY: (p == player::ONE)? player::TWO: player::ONE;}
+	static state& get_state() { static state _s; return _s;}
 };
 
 	

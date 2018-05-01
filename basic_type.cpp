@@ -231,7 +231,5 @@ int rand_range(int start, int end)
 	return dist(eng);
 }
 
-constexpr
-dir inverse(dir d) { return (d + 3) % 6;}
 
 }

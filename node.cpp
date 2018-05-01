@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "node.hpp"
 
 namespace quintuple_go
@@ -5,31 +6,27 @@ namespace quintuple_go
 
 
 // private:
-double node::UCT()
+double node::UCT() const
 {
-	return (total == 0)? std::numeric_limits<double>::max():
+	return (_total == 0)? std::numeric_limits<double>::max():
 		static_cast<double>(_win) / _total +
-		std::sqrt(2) * std::sqrt(std::log((_parent)? _parent->_total: 0) / _total);
+		std::sqrt(2) * std::sqrt(std::log((_parent)? _parent /* root */->_total: 0) / _total);
 }
 
 int node::sum_dir(position start, dir first, dir second, dir scan) const
 {
 	int total = 0, counter = 0;
-	auto flipped_player = filp(_player);
+	auto flipped_player = flip(_player);
 	for (position i = 0; i != OUT_OF_BOUND; i = NAB[i][first])
 		for (position j = i; j != OUT_OF_BOUND; j = NAB[j][scan])
 		{
-			// ____ooox__o___x_xxoo__
-			// ___o__________o_______
 			if (_map[j] != flipped_player)
 				counter++;
 			else
 				counter = 0;
 
 			if (counter == 5)
-			{
 				total++;
-			}
 		}
 	counter = 0;
 	for (position i = 0; i != OUT_OF_BOUND; i = NAB[i][second])
@@ -68,26 +65,23 @@ void node::explore_node(position pos, dir direction, int step = 2)
 		if (beside == OUT_OF_BOUND ||
 			_allocated_child.find(beside) != _allocated_child.end())
 			return;
-		if (_map[beside] != EMPTY)
+		if (_map[beside] != player::EMPTY)
 			continue;
-		
-		auto p = std::unique_ptr<node>{new node{beside, flip(_player), _map.get_sp()}};
+
+		auto p = std::unique_ptr<node>{new node{beside, flip(_player), _map}};
 		int rank = p->score();
-		_child.insert(std::make_pair(rank, std::move(p));
+		_child.insert(std::make_pair(rank, std::move(p)));
 		_allocated_child.insert(beside);
 	}
 }
 
-//               avalable space, score of line
-// std::tuple<std::deque<position>, int>
-static
 void node::scan_dir(state_view const & t_map,
 					player me,
 					position start,
 					dir accor,
 					dir direc,
 					std::array<int, MAP_SIZE> &score,
-					bool early_stop = false) const
+					bool early_stop)
 {
 	player op = flip(me);
 	for (position p = start;
@@ -102,7 +96,8 @@ void node::scan_dir(state_view const & t_map,
 		{
 			player prev = t_map[NAB[walker][i_direc]];
 			player play = t_map[walker];
-			if ((prev == EMPTY && play == EMPTY) || (prev == OUT_OF_BOUND && play == EMPTY))
+			if ((prev == player::EMPTY && play == player::EMPTY) ||
+				(static_cast<int>(prev) == OUT_OF_BOUND && play == player::EMPTY))
 				counter = 1;
 			else if (play == op)
 				counter = 0;
@@ -119,7 +114,8 @@ void node::scan_dir(state_view const & t_map,
 		{
 			player prev = t_map[NAB[walker][direc]];
 			player play = t_map[walker];
-			if ((prev == EMPTY && play == EMPTY) || (prev == OUT_OF_BOUND && play == EMPTY))
+			if ((prev == player::EMPTY && play == player::EMPTY) ||
+				(static_cast<int>(prev) == OUT_OF_BOUND && play == player::EMPTY))
 				counter = 1;
 			else if (play == op)
 				counter = 0;
@@ -133,30 +129,29 @@ void node::scan_dir(state_view const & t_map,
 	}
 }
 
-
 // public
 node& node::select()
 {
 	if (_child.empty())
-		*this;
-	return *_child.begin();
+		return *this;
+	return *(_child.begin()->second);
 }
 
 node& node::expand()
 {
 	for (position pos = 0; pos < MAP_SIZE; pos++)
 	{
-		player& stone = _map[pos];
-		if (stone != EMPTY)
+		if (_map[pos] != player::EMPTY)
 		{
-			explore_node(stone, LEFT_UP);
-			explore_node(stone, LEFT);
-			explore_node(stone, LEFT_DOWN);
-			explore_node(stone, RIGHT_DOWN);
-			explore_node(stone, RIGHT);
-			explore_node(stone, RIGHT_UP);
+			explore_node(pos, LEFT_UP);
+			explore_node(pos, LEFT);
+			explore_node(pos, LEFT_DOWN);
+			explore_node(pos, RIGHT_DOWN);
+			explore_node(pos, RIGHT);
+			explore_node(pos, RIGHT_UP);
 		}
 	}
+	return *this;
 }
 
 player node::simulate()
@@ -180,22 +175,38 @@ player node::simulate()
 			scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, score, true);
 			scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, score, true);
 		}
-		catch (winner &w const)
+		catch (winner const &w)
 		{
-			return w.winner;
+			return w.win;
 		}
 		
 		try
 		{
-			position pos = *std::max_element(score.begin(), score.end());
+			position pos = std::max_element(score.begin(), score.end()) - score.begin();			
 			t_map.insert(std::make_pair(pos, cur));
 			cur = flip(cur);
 		}
 		catch (...)
 		{
-			return EMPTY;
+			return player::EMPTY;
 		}
 	}
+}
+
+void node::propagate(player winner)
+{
+	if (winner == _player)
+		_win++;
+	_total++;
+	if (_parent != nullptr)
+		_parent->propagate(winner);
+}
+
+position node::best_child() const
+{
+	return std::max_element(_child.begin(), _child.end(), [](auto const &lhs, auto const &rhs) {
+		return lhs.second->win_percentage() < rhs.second->win_percentage();
+	})->first;
 }
 
 

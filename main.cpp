@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-//#include "mcts.hpp"
+#include "mcts.hpp"
 
 constexpr auto STATE_FILE = "state_07.txt";
 constexpr auto STEP_FILE  = "move_07.txt";
@@ -34,7 +34,11 @@ int main(int argc, char *argv[])
 			{
 				quintuple_go::state arr;
 				for (auto &i : arr)
-					state >> i;
+				{
+					int value;
+					state >> value;
+					i = static_cast<quintuple_go::player>(value);
+				}
 
 				tree.load(arr);
 
@@ -50,6 +54,6 @@ int main(int argc, char *argv[])
 		else
 			std::this_thread::yield();
 	}
-//	th.join();
+	th.join();
 	return 0;
 }

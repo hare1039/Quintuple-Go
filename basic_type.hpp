@@ -13,7 +13,7 @@ enum class player {EMPTY, ONE, TWO};
 using      state    = std::array<player, MAP_SIZE>;
 
 enum       dir { LEFT_UP = 0, LEFT, LEFT_DOWN, RIGHT_DOWN, RIGHT, RIGHT_UP };
-constexpr  int OUT_OF_BOUND = -1;
+constexpr  int OUT_OF_BOUND = (-1);
 
 class neighbours
 {
@@ -25,9 +25,10 @@ public:
 };
 
 extern std::array<neighbours, MAP_SIZE> const NAB;
-
 int rand_range(int start, int end);
-dir invert(dir d);
+constexpr dir inverse(dir d) { return static_cast<dir>((static_cast<int>(d) + 3) % 6);}
+
+
 }
 
 
