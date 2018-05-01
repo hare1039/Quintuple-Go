@@ -22,6 +22,7 @@ public:
 	auto   insert(std::pair<position, player> && p) { return sp.insert(p); }
 	auto&  get_sp() { return sp; }
 	state  gen_state()  { state s; for (int i = 0; i < MAP_SIZE; i++) s[i] = (*this)[i]; return s;}
+	void   show_sp()    { for (auto &v: sp) std::cout << v.first << ": " << static_cast<int>(v.second) << "\n"; }
 };
 
 

@@ -28,8 +28,8 @@ public:
 	node(position pos,
 		 player p,
 		 state_view sv = state_view{get_state()}): _pos{pos},
-											   _player{p},
-											   _map{(sv)} {}
+												   _player{p},
+												   _map{(sv)} {}
 
 	node&  select();
 	node&  expand();

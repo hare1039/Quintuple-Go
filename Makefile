@@ -1,6 +1,6 @@
 CXX      = clang++
 CXXFLAGS = -std=c++14 -pthread -g
-OBJECTS  = mcts.o node.o basic_type.o run
+OBJECTS  = mcts.o node.o basic_type.o run debug
 
 
 all: run
@@ -19,3 +19,6 @@ basic_type.o: basic_type.cpp
 
 clean:
 	rm -rf $(OBJECTS)
+
+debug: debug.cpp mcts.o node.o basic_type.o
+	$(CXX) $(CXXFLAGS) -o $@ $^

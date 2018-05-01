@@ -11,13 +11,13 @@ namespace quintuple_go
 
 class mcts
 {
-	node root = node(-1, player::EMPTY);
+	node root = node(-1, player::ONE);
 	std::mutex root_mtx;
 public:
 	position best_step() const;
 	void     reset();
 	void     load(state &);
-	void     run();
+	void     run(long i = -1);
 };
 
 

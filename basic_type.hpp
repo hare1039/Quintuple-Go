@@ -3,6 +3,7 @@
 
 #include <array>
 #include <random>
+#include <iostream>
 
 namespace quintuple_go
 {

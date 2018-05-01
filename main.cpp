@@ -15,7 +15,7 @@ auto filesize(const char name[])
 	return i.tellg();
 }
 
-int main(int argc, char *argv[])
+int __main(int argc, char *argv[])
 {
 	quintuple_go::mcts tree;
 	std::thread th([&tree]{ tree.run(); });

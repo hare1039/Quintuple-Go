@@ -20,15 +20,17 @@ void mcts::load(state & new_state)
 	root.set_state(new_state);
 }
 
-void mcts::run()
+void mcts::run(long times)
 {
-	for (;;)
+	for (unsigned int count = 0; count < times; count++)
 	{
+		std::cout << "round #" << count << "\n";
 		std::lock_guard<std::mutex> guard(root_mtx);
 		node& n = root.select();
 		node& child = n.expand();
 		player winner = child.simulate();
 		child.propagate(winner);
+        winner = player::EMPTY;
 	}
 }
 

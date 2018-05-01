@@ -69,6 +69,7 @@ void node::explore_node(position pos, dir direction, int step = 2)
 			continue;
 
 		auto p = std::unique_ptr<node>{new node{beside, flip(_player), _map}};
+		p->_parent = this;
 		int rank = p->score();
 		_child.insert(std::make_pair(rank, std::move(p)));
 		_allocated_child.insert(beside);
@@ -85,12 +86,12 @@ void node::scan_dir(state_view const & t_map,
 {
 	player op = flip(me);
 	for (position p = start;
-		 p != OUT_OF_BOUND || (early_stop && NAB[ NAB[p][accor] ][accor] == OUT_OF_BOUND);
+		 p != OUT_OF_BOUND && (not (early_stop && NAB[ NAB[p][accor] ][accor] == OUT_OF_BOUND));
 		 p = NAB[p][accor])
 	{
-		int counter = 0, op_counter = 0;
-		position walker = p;
-		dir i_direc = inverse(direc);
+        int      counter    = 0;
+		position walker     = p;
+		dir      i_direc    = inverse(direc);
 		
 		for (; NAB[walker][direc] != OUT_OF_BOUND; walker = NAB[walker][direc])
 		{
@@ -132,6 +133,7 @@ void node::scan_dir(state_view const & t_map,
 // public
 node& node::select()
 {
+	std::cout << "select\n";
 	if (_child.empty())
 		return *this;
 	return *(_child.begin()->second);
@@ -139,6 +141,7 @@ node& node::select()
 
 node& node::expand()
 {
+	std::cout << "expand\n";
 	for (position pos = 0; pos < MAP_SIZE; pos++)
 	{
 		if (_map[pos] != player::EMPTY)
@@ -151,11 +154,12 @@ node& node::expand()
 			explore_node(pos, RIGHT_UP);
 		}
 	}
-	return *this;
+	return *(_child.begin()->second);
 }
 
 player node::simulate()
 {
+	std::cout << "simulate\n";
 	state_view t_map{_map};
 	/*
 	  model:         UP,     UP_LEFT,      DOWN_LEFT,      DOWN,   DOWN_RIGHT,    UP_RIGHT
@@ -182,8 +186,13 @@ player node::simulate()
 		
 		try
 		{
-			position pos = std::max_element(score.begin(), score.end()) - score.begin();			
+			for (position p = 0; p < MAP_SIZE; p++)
+				if (t_map[p] != player::EMPTY)
+					score[p] = -1;
+			position pos = std::max_element(score.begin(), score.end()) - score.begin();
+//			std::cout << "Put @: " << pos << "\n";
 			t_map.insert(std::make_pair(pos, cur));
+//          t_map.show_sp();
 			cur = flip(cur);
 		}
 		catch (...)
@@ -195,6 +204,7 @@ player node::simulate()
 
 void node::propagate(player winner)
 {
+	std::cout << "propagate\n";
 	if (winner == _player)
 		_win++;
 	_total++;
@@ -206,7 +216,7 @@ position node::best_child() const
 {
 	return std::max_element(_child.begin(), _child.end(), [](auto const &lhs, auto const &rhs) {
 		return lhs.second->win_percentage() < rhs.second->win_percentage();
-	})->first;
+	})->second->_pos;
 }
 
 
