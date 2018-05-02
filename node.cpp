@@ -10,9 +10,12 @@ namespace quintuple_go
 // private:
 double node::UCT() const
 {
+	node * n = _parent;
+	while (n != nullptr && n->_parent != nullptr)
+		n = n->_parent;
 	return (_total == 0)? 0:
 		static_cast<double>(_win) / _total +
-		std::sqrt(2) * std::sqrt(std::log((_parent)? _parent /* root */->_total: 0) / _total);
+		std::sqrt(2) * std::sqrt(std::log(n->_total) / _total);
 }
 
 
@@ -74,7 +77,7 @@ int node::score() const
 
 void node::explore_node(position pos, dir direction, int step = 2)
 {
-	constexpr int winner_found = MAP_SIZE + 10;
+	constexpr int winner_found = -100;
 	for (; step != 0; step--)
 	{
 		position beside = NAB[pos][direction];

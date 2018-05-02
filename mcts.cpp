@@ -11,7 +11,7 @@ position mcts::best_step() const
 
 void mcts::reset()
 {
-	
+
 }
 
 void mcts::load(state & new_state)
@@ -30,8 +30,9 @@ void mcts::run(long times)
 		node& child = n.expand();
 		player winner = child.simulate();
 		child.propagate(winner);
-        winner = player::EMPTY;
 	}
+
+    auto winner = player::EMPTY;
 }
 
 }
