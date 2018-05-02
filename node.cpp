@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include "node.hpp"
 
 namespace quintuple_go
@@ -8,41 +10,54 @@ namespace quintuple_go
 // private:
 double node::UCT() const
 {
-	return (_total == 0)? std::numeric_limits<double>::max():
+	return (_total == 0)? 0:
 		static_cast<double>(_win) / _total +
 		std::sqrt(2) * std::sqrt(std::log((_parent)? _parent /* root */->_total: 0) / _total);
 }
 
+
+int node::sum_oneline(position start, dir scan, player p) const
+{
+	auto flipped_player = flip(p);
+	int total = 0, max_c = 0, max_i = 0, counter = 0, inv_counter = 0;
+	for (position i = start; i != OUT_OF_BOUND; i = NAB[i][scan])
+	{
+		if (_map[i] != flipped_player)
+		{
+			counter++;
+			inv_counter = 0;
+		}
+		else
+		{
+			counter = 0;
+			inv_counter++;
+		}
+
+		if (inv_counter >= 5)
+			throw winner(flipped_player, i);
+
+		max_c = std::max(counter, max_c);
+		max_i = std::max(inv_counter, max_i);
+	}
+
+	total += (RATE[max_c > 5 ? 5: max_c]);
+	total -= (RATE[max_i > 5 ? 5: max_i]);
+	return total;
+}
+
 int node::sum_dir(position start, dir first, dir second, dir scan) const
 {
-	int total = 0, counter = 0;
-	auto flipped_player = flip(_player);
+	int total = 0;
 	for (position i = 0; i != OUT_OF_BOUND; i = NAB[i][first])
-		for (position j = i; j != OUT_OF_BOUND; j = NAB[j][scan])
-		{
-			if (_map[j] != flipped_player)
-				counter++;
-			else
-				counter = 0;
-
-			if (counter == 5)
-				total++;
-		}
-	counter = 0;
+	{
+		total += sum_oneline(i, scan, _player);
+		total -= sum_oneline(i, scan, flip(_player));
+	}
 	for (position i = 0; i != OUT_OF_BOUND; i = NAB[i][second])
-		for (position j = i; j != OUT_OF_BOUND; j = NAB[j][scan])
-		{
-			if (_map[j] != flipped_player)
-				counter++;
-			else
-				counter = 0;
-
-			if (counter == 5)
-			{
-				total++;
-				counter--;
-			}
-		}
+	{
+		total += sum_oneline(i, scan, _player);
+		total -= sum_oneline(i, scan, flip(_player));
+	}
 
 	return total;
 }
@@ -59,20 +74,35 @@ int node::score() const
 
 void node::explore_node(position pos, dir direction, int step = 2)
 {
+	constexpr int winner_found = MAP_SIZE + 10;
 	for (; step != 0; step--)
 	{
 		position beside = NAB[pos][direction];
 		if (beside == OUT_OF_BOUND ||
-			_allocated_child.find(beside) != _allocated_child.end())
+			_allocated_child.find(beside) != _allocated_child.end() ||
+			_allocated_child.find(winner_found) != _allocated_child.end())
 			return;
 		if (_map[beside] != player::EMPTY)
 			continue;
 
 		auto p = std::unique_ptr<node>{new node{beside, flip(_player), _map}};
 		p->_parent = this;
-		int rank = p->score();
-		_child.insert(std::make_pair(rank, std::move(p)));
-		_allocated_child.insert(beside);
+		try
+		{
+			int rank = p->score();
+			_child.insert(std::make_pair(rank, std::move(p)));
+			_allocated_child.insert(beside);
+		}
+		catch(winner const &w)
+		{
+			_allocated_child.insert(winner_found);
+			{
+				decltype(_child){}.swap(_child);
+			}
+			_child.insert(std::make_pair(std::numeric_limits<int>::max(), std::move(p)));
+			_allocated_child.insert(w._place);
+//			std::cout << "winner " << static_cast<int>(w._win) << w._place << "\n";
+		}
 	}
 }
 
@@ -92,7 +122,7 @@ void node::scan_dir(state_view const & t_map,
         int      counter    = 0;
 		position walker     = p;
 		dir      i_direc    = inverse(direc);
-		
+
 		for (; NAB[walker][direc] != OUT_OF_BOUND; walker = NAB[walker][direc])
 		{
 			player prev = t_map[NAB[walker][i_direc]];
@@ -106,7 +136,7 @@ void node::scan_dir(state_view const & t_map,
 				counter++;
 
 			if (counter >= 5)
-				throw winner(me);
+				throw winner(me, walker);
 			score[walker] += counter;
 		}
 
@@ -122,26 +152,38 @@ void node::scan_dir(state_view const & t_map,
 				counter = 0;
 			else
 				counter++;
-			
+
 			if (counter >= 5)
-				throw winner(me);
+				throw winner(me, walker);
 			score[walker] += counter;
 		}
 	}
 }
 
 // public
-node& node::select()
+node& node::select(int threshold)
 {
-	std::cout << "select\n";
+//	std::cout << "select\n";
 	if (_child.empty())
 		return *this;
-	return *(_child.begin()->second);
+
+	int counter = 0;
+	for (auto & c: _child)
+	{
+		if (c.second->_total == 0)
+			return *c.second;
+		if (counter++ >= threshold)
+			break;
+	}
+
+	return *(std::max_element(_child.begin(), _child.end(), [](const auto &lhs, const auto &rhs) {
+				return lhs.second->UCT() < rhs.second->UCT();
+			})->second);
 }
 
 node& node::expand()
 {
-	std::cout << "expand\n";
+//	std::cout << "expand\n";
 	for (position pos = 0; pos < MAP_SIZE; pos++)
 	{
 		if (_map[pos] != player::EMPTY)
@@ -159,7 +201,7 @@ node& node::expand()
 
 player node::simulate()
 {
-	std::cout << "simulate\n";
+//	std::cout << "simulate\n";
 	state_view t_map{_map};
 	/*
 	  model:         UP,     UP_LEFT,      DOWN_LEFT,      DOWN,   DOWN_RIGHT,    UP_RIGHT
@@ -169,7 +211,7 @@ player node::simulate()
 	player cur = _player;
 	for (;;)
 	{
-		std::array<int, MAP_SIZE> score;
+		std::array<int, MAP_SIZE> score{};
 		try
 		{
 			scan_dir(t_map, cur,   8,       LEFT, RIGHT_DOWN, score);
@@ -181,9 +223,9 @@ player node::simulate()
 		}
 		catch (winner const &w)
 		{
-			return w.win;
+			return w._win;
 		}
-		
+
 		try
 		{
 			for (position p = 0; p < MAP_SIZE; p++)
@@ -204,7 +246,7 @@ player node::simulate()
 
 void node::propagate(player winner)
 {
-	std::cout << "propagate\n";
+//	std::cout << "propagate\n";
 	if (winner == _player)
 		_win++;
 	_total++;
@@ -215,7 +257,19 @@ void node::propagate(player winner)
 position node::best_child() const
 {
 	return std::max_element(_child.begin(), _child.end(), [](auto const &lhs, auto const &rhs) {
-		return lhs.second->win_percentage() < rhs.second->win_percentage();
+		auto lw = lhs.second->win_percentage();
+		auto rw = rhs.second->win_percentage();
+		auto lu = lhs.second->UCT();
+		auto ru = rhs.second->UCT();
+		if (std::abs(lw - rw) < 0.01)
+		{
+			if (std::abs(lu - ru) < 0.01)
+				return lhs.first < rhs.first;
+			else
+				return lu < ru;
+		}
+
+		return lw < rw;
 	})->second->_pos;
 }
 

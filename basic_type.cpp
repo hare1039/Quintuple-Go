@@ -223,6 +223,7 @@ std::array<neighbours, MAP_SIZE> const NAB = {
 	neighbours{ 206, 215,  -1,  -1,  -1, 207 }
 };
 
+std::array<int, 9> const RATE = {0, 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000};
 
 int rand_range(int start, int end)
 {

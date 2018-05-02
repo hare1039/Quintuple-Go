@@ -26,9 +26,9 @@ public:
 };
 
 extern std::array<neighbours, MAP_SIZE> const NAB;
+extern std::array<int, 9> const RATE;
 int rand_range(int start, int end);
 constexpr dir inverse(dir d) { return static_cast<dir>((static_cast<int>(d) + 3) % 6);}
-
 
 }
 

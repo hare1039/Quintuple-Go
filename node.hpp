@@ -29,9 +29,9 @@ public:
 		 player p,
 		 state_view sv = state_view{get_state()}): _pos{pos},
 												   _player{p},
-												   _map{(sv)} {}
+												   _map{(sv)} { _map.insert(std::make_pair(pos, p)); }
 
-	node&  select();
+	node&  select(int threshold = 20);
 	node&  expand();
 	player simulate();
 	void   propagate(player winner);
@@ -43,13 +43,15 @@ private:
 	int    score() const;
 	double win_percentage() const {	return _total == 0? 0.0: _win / _total; }
 	int    sum_dir(position start, dir first, dir second, dir scan) const;
+	int    sum_oneline(position, dir, player) const;
 	void   explore_node(position, dir, int);
 	
 	struct winner : public std::exception
 	{
-		player win;
+		player _win;
+		position _place;
 		winner() = default;
-		winner(player p): win(p) {}
+		winner(player p, position pl): _win(p), _place(pl) {}
 		const char * what () const noexcept { return "Found winner"; }
 	};
 	static
