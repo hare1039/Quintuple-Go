@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 		}
 
 		tree.load(arr);
-		tree.run(10000);
+		tree.run(5000);
 		std::cout << tree.best_step() << "\n";
 	}
 	return 0;

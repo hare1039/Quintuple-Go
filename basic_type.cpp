@@ -225,11 +225,11 @@ std::array<neighbours, MAP_SIZE> const NAB = {
 
 std::array<int, 9> const RATE = {0, 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000};
 
-int rand_range(int start, int end)
+bool random_break(double p)
 {
 	static std::mt19937 eng{std::random_device{}()};
-	std::uniform_int_distribution<int> dist(start, end);
-	return dist(eng);
+	std::uniform_int_distribution<int> dist(0, 100);
+	return dist(eng) < 100 * p;
 }
 
 

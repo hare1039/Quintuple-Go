@@ -17,7 +17,13 @@ void mcts::reset()
 void mcts::load(state & new_state)
 {
 	std::lock_guard<std::mutex> guard(root_mtx);
-	root.set_state(new_state);
+    for (auto &p : new_state)
+        if (p != player::EMPTY)
+        {
+            root.set_state(new_state);
+            return;
+        }
+    root.empty_start();
 }
 
 void mcts::run(long times)

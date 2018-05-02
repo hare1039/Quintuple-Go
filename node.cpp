@@ -118,6 +118,7 @@ void node::scan_dir(state_view const & t_map,
 					bool early_stop)
 {
 	player op = flip(me);
+	std::array<int, MAP_SIZE> t_score{};
 	for (position p = start;
 		 p != OUT_OF_BOUND && (not (early_stop && NAB[ NAB[p][accor] ][accor] == OUT_OF_BOUND));
 		 p = NAB[p][accor])
@@ -130,37 +131,49 @@ void node::scan_dir(state_view const & t_map,
 		{
 			player prev = t_map[NAB[walker][i_direc]];
 			player play = t_map[walker];
-			if ((prev == player::EMPTY && play == player::EMPTY) ||
-				(static_cast<int>(prev) == OUT_OF_BOUND && play == player::EMPTY))
-				counter = 1;
-			else if (play == op)
+			
+			if (prev == player::EMPTY && play == player::EMPTY)
 				counter = 0;
+
+			else if ((prev == me && play == op) || (prev == player::EMPTY && play == op))
+				counter = 1;
+
+			else if ((prev == op && play == me) || (prev == player::EMPTY && play == me))
+				counter = 2;
+
 			else
-				counter++;
+				counter += 2;
+				
 
-			if (counter >= 5)
+			if (counter >= 9)
 				throw winner(me, walker);
-			score[walker] += counter;
+			t_score[walker] += counter;
 		}
-
-		counter = 0;
-		for (; NAB[walker][direc] != OUT_OF_BOUND; walker = NAB[walker][i_direc])
+	    
+		for (counter = 0; NAB[walker][i_direc] != OUT_OF_BOUND; walker = NAB[walker][i_direc])
 		{
 			player prev = t_map[NAB[walker][direc]];
 			player play = t_map[walker];
-			if ((prev == player::EMPTY && play == player::EMPTY) ||
-				(static_cast<int>(prev) == OUT_OF_BOUND && play == player::EMPTY))
-				counter = 1;
-			else if (play == op)
+			if (prev == player::EMPTY && play == player::EMPTY)
 				counter = 0;
-			else
-				counter++;
 
-			if (counter >= 5)
+			else if ((prev == me && play == op) || (prev == player::EMPTY && play == op))
+				counter = 1;
+			
+			else if ((prev == op && play == me) || (prev == player::EMPTY && play == me))
+				counter = 2;
+			
+			else
+				counter += 2;
+				
+			if (counter >= 9)
 				throw winner(me, walker);
-			score[walker] += counter;
+			t_score[walker] += counter;
 		}
 	}
+	
+	for (int i = 0; i < t_score.size(); i++)
+		score[i] = std::max(score[i], t_score[i]);
 }
 
 // public
@@ -214,6 +227,7 @@ player node::simulate()
 	player cur = _player;
 	for (;;)
 	{
+        cur = flip(cur);
 		std::array<int, MAP_SIZE> score{};
 		try
 		{
@@ -223,9 +237,18 @@ player node::simulate()
 			scan_dir(t_map, cur, 208,      RIGHT,    LEFT_UP, score, true);
 			scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, score, true);
 			scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, score, true);
+//            t_map.show();
+//            for (auto i = 0; i < score.size(); i++)
+//                std::cout << score[i] << " ";
+//            std::cout << "\n";
 		}
 		catch (winner const &w)
 		{
+//			t_map.show();
+//            for (auto i = 0; i < score.size(); i++)
+//                std::cout << score[i] << " ";
+//            std::cout << "\n";
+//            std::cout << static_cast<int>(w._win) << " " << w._place << "\n";
 			return w._win;
 		}
 
@@ -234,11 +257,28 @@ player node::simulate()
 			for (position p = 0; p < MAP_SIZE; p++)
 				if (t_map[p] != player::EMPTY)
 					score[p] = -1;
-			position pos = std::max_element(score.begin(), score.end()) - score.begin();
-//			std::cout << "Put @: " << pos << "\n";
+
+			auto max_score = score.begin();
+			int  max_counter = 0;
+			for (auto it = score.begin(); it != score.end(); ++it)
+			{
+				if (*max_score < *it)
+					max_score = it;
+				if (*max_score == *it)
+					max_counter++;
+			}
+			position pos = static_cast<int>(max_score - score.begin());
+			for (auto it = score.begin(); it != score.end(); ++it)
+			{
+				if (*it == *max_score)
+				{
+					pos = static_cast<int>(it - score.begin());
+					if (random_break(1.0 / max_counter--))
+						break;
+				}
+			}
+
 			t_map.insert(std::make_pair(pos, cur));
-//          t_map.show_sp();
-			cur = flip(cur);
 		}
 		catch (...)
 		{
@@ -269,11 +309,18 @@ position node::best_child() const
 			if (std::abs(lu - ru) < 0.01)
 				return lhs.first < rhs.first;
 			else
-				return lu < ru;
+			    return lu < ru;
 		}
 
 		return lw < rw;
 	})->second->_pos;
+}
+
+void node::empty_start()
+{
+    auto p = std::unique_ptr<node>{new node{108, player::ONE, _map}};
+    p->_parent = this;
+    _child.insert(std::make_pair(108, std::move(p)));
 }
 
 

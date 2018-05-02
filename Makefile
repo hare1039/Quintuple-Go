@@ -1,5 +1,5 @@
 CXX      = clang++
-CXXFLAGS = -std=c++14 -pthread -g
+CXXFLAGS = -std=c++14 -pthread -O3
 OBJECTS  = mcts.o node.o basic_type.o run debug
 
 

@@ -23,6 +23,7 @@ public:
 	auto&  get_sp() { return sp; }
 	state  gen_state()  { state s; for (int i = 0; i < MAP_SIZE; i++) s[i] = (*this)[i]; return s;}
 	void   show_sp()    { for (auto &v: sp) std::cout << v.first << ": " << static_cast<int>(v.second) << "\n"; }
+	void   show()       { for (position p = 0; p < MAP_SIZE; p++) std::cout<< static_cast<int>((*this)[p])<< " "; std::cout << "\n"; }
 };
 
 

@@ -38,6 +38,7 @@ public:
 	void   set_state(state &s) { std::swap(get_state(), s); }
 
 	position best_child() const;
+	void   empty_start();
 private:
 	double UCT() const;
 	int    score() const;
