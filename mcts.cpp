@@ -37,8 +37,6 @@ void mcts::run(long times)
 		player winner = child.simulate();
 		child.propagate(winner);
 	}
-
-    auto winner = player::EMPTY;
 }
 
 }

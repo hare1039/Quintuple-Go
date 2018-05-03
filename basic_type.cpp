@@ -232,5 +232,11 @@ bool random_break(double p)
 	return dist(eng) < 100 * p;
 }
 
+bool random_in(int max)
+{
+	static std::mt19937 eng{std::random_device{}()};
+	std::uniform_int_distribution<int> dist(0, max);
+	return dist(eng);
+}
 
 }

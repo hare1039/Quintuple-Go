@@ -5,6 +5,7 @@
 #include <memory>
 #include <cmath>
 #include <list>
+#include <deque>
 #include <set>
 
 #include "basic_type.hpp"
@@ -31,7 +32,7 @@ public:
 												   _player{p},
 												   _map{(sv)} { _map.insert(std::make_pair(pos, p)); }
 
-	node&  select(int threshold = 20);
+	node&  select(int threshold = 10);
 	node&  expand();
 	player simulate();
 	void   propagate(player winner);
@@ -41,6 +42,9 @@ public:
 	void   empty_start();
 private:
 	double UCT() const;
+	int    bonus_score() const;
+    int    score_def_dir(dir d) const;
+    int    score_atk_dir(dir d) const;
 	int    score() const;
 	double win_percentage() const {	return _total == 0? 0.0: _win / _total; }
 	int    sum_dir(position start, dir first, dir second, dir scan) const;
@@ -55,13 +59,18 @@ private:
 		winner(player p, position pl): _win(p), _place(pl) {}
 		const char * what () const noexcept { return "Found winner"; }
 	};
+    struct score_pair
+    {
+        int _max   = 0;
+        int _total = 0;
+    };
 	static
 	void scan_dir(state_view const & t_map,
 				  player me,
 				  position start,
 				  dir accor,
 				  dir direc,
-				  std::array<int, MAP_SIZE> &score,
+				  std::array<score_pair, MAP_SIZE> &score,
 				  bool early_stop = false);
 	static player flip(player p) { return (p == player::EMPTY)? player::EMPTY: (p == player::ONE)? player::TWO: player::ONE;}
 	static state& get_state() { static state _s; return _s;}

@@ -4,6 +4,8 @@
 #include <array>
 #include <random>
 #include <iostream>
+#include <initializer_list>
+
 
 namespace quintuple_go
 {
@@ -28,6 +30,20 @@ public:
 extern std::array<neighbours, MAP_SIZE> const NAB;
 extern std::array<int, 9> const RATE;
 bool random_break(double p);
+bool random_in(int max);
+template<typename T>
+T random_gen(std::initializer_list<std::pair<T, double>> l)
+{
+    auto selected = l.begin();
+    double prev_pos = 1;
+    for (; selected != l.end(); ++selected)
+        if (random_break(selected->second / prev_pos))
+            break;
+        else
+            prev_pos *= selected->second;
+    
+    return selected == l.end()? (--selected)->first: selected->first;
+}
 constexpr dir inverse(dir d) { return static_cast<dir>((static_cast<int>(d) + 3) % 6);}
 
 }

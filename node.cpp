@@ -66,13 +66,68 @@ int node::sum_dir(position start, dir first, dir second, dir scan) const
 }
 
 
+int node::score_def_dir(dir d) const
+{
+	int cont = 0;
+	player op = flip(_player);
+	position mid = NAB[_pos][d];
+	while (mid != OUT_OF_BOUND)
+    {
+        if (_map[mid] == op)
+            cont++;
+        else
+            break;
+        mid = NAB[mid][d];
+    }
+	return cont;
+}
+    
+int node::score_atk_dir(dir d) const
+{
+    int cont = 0;
+    position mid = NAB[_pos][d];
+    while (mid != OUT_OF_BOUND)
+    {
+        if (_map[mid] == _player)
+            cont++;
+        else if (_map[mid] != player::EMPTY)
+            break;
+        
+
+        
+        if (cont >= 5)
+            throw winner(_player, mid);
+        mid = NAB[mid][d];
+    }
+    return cont;
+}
+	
+int node::bonus_score() const
+{
+	int sum = 0;
+	sum += (RATE[score_def_dir(LEFT_UP)]);
+	sum += (RATE[score_def_dir(LEFT)]);
+	sum += (RATE[score_def_dir(LEFT_DOWN)]);
+	sum += (RATE[score_def_dir(RIGHT_DOWN)]);
+	sum += (RATE[score_def_dir(RIGHT)]);
+	sum += (RATE[score_def_dir(RIGHT_UP)]);
+    sum += (RATE[score_atk_dir(LEFT_UP)  + 1]);
+    sum += (RATE[score_atk_dir(LEFT)     + 1]);
+    sum += (RATE[score_atk_dir(LEFT_DOWN)+ 1]);
+    sum += (RATE[score_atk_dir(RIGHT_DOWN)+1]);
+    sum += (RATE[score_atk_dir(RIGHT)    + 1]);
+    sum += (RATE[score_atk_dir(RIGHT_UP) + 1]);
+	return sum * 200;
+}
+
 int node::score() const
 {
 	int total = 0;
-	total += sum_dir(0,    LEFT_DOWN, RIGHT_DOWN, RIGHT);
-	total += sum_dir(100, RIGHT_DOWN,      RIGHT, RIGHT_UP);
-	total += sum_dir(8,         LEFT,  LEFT_DOWN, RIGHT_DOWN);
-	return total;
+//    total += sum_dir(0,    LEFT_DOWN, RIGHT_DOWN, RIGHT);
+//    total += sum_dir(100, RIGHT_DOWN,      RIGHT, RIGHT_UP);
+//    total += sum_dir(8,         LEFT,  LEFT_DOWN, RIGHT_DOWN);
+	total += bonus_score();
+    return total;
 }
 
 void node::explore_node(position pos, dir direction, int step = 2)
@@ -114,7 +169,7 @@ void node::scan_dir(state_view const & t_map,
 					position start,
 					dir accor,
 					dir direc,
-					std::array<int, MAP_SIZE> &score,
+					std::array<score_pair, MAP_SIZE> &score,
 					bool early_stop)
 {
 	player op = flip(me);
@@ -145,9 +200,10 @@ void node::scan_dir(state_view const & t_map,
 				counter += 2;
 				
 
-			if (counter >= 9)
+			if (counter >= 10)
 				throw winner(me, walker);
 			t_score[walker] += counter;
+			score[walker]._total += counter;
 		}
 	    
 		for (counter = 0; NAB[walker][i_direc] != OUT_OF_BOUND; walker = NAB[walker][i_direc])
@@ -166,14 +222,15 @@ void node::scan_dir(state_view const & t_map,
 			else
 				counter += 2;
 				
-			if (counter >= 9)
+			if (counter >= 10)
 				throw winner(me, walker);
 			t_score[walker] += counter;
+			score[walker]._total += counter;
 		}
 	}
 	
 	for (int i = 0; i < t_score.size(); i++)
-		score[i] = std::max(score[i], t_score[i]);
+		score[i]._max = std::max(score[i]._max, t_score[i]);
 }
 
 // public
@@ -192,9 +249,9 @@ node& node::select(int threshold)
 			break;
 	}
 
-	return *(std::max_element(_child.begin(), _child.end(), [](const auto &lhs, const auto &rhs) {
+	return (std::max_element(_child.begin(), _child.end(), [](const auto &lhs, const auto &rhs) {
 				return lhs.second->UCT() < rhs.second->UCT();
-			})->second);
+			})->second->select(threshold));
 }
 
 node& node::expand()
@@ -217,7 +274,6 @@ node& node::expand()
 
 player node::simulate()
 {
-//	std::cout << "simulate\n";
 	state_view t_map{_map};
 	/*
 	  model:         UP,     UP_LEFT,      DOWN_LEFT,      DOWN,   DOWN_RIGHT,    UP_RIGHT
@@ -228,7 +284,7 @@ player node::simulate()
 	for (;;)
 	{
         cur = flip(cur);
-		std::array<int, MAP_SIZE> score{};
+		std::array<score_pair, MAP_SIZE> score{};
 		try
 		{
 			scan_dir(t_map, cur,   8,       LEFT, RIGHT_DOWN, score);
@@ -244,10 +300,15 @@ player node::simulate()
 		}
 		catch (winner const &w)
 		{
-//			t_map.show();
+//            t_map.show();
 //            for (auto i = 0; i < score.size(); i++)
-//                std::cout << score[i] << " ";
-//            std::cout << "\n";
+//                std::cout << score[i]._max << " ";
+//            std::cout << "\n---\n";
+//            for (auto i = 0; i < score.size(); i++)
+//                std::cout << score[i]._total << " ";
+//            std::cout << "\n+++\n";
+//            if (w._place == 19)
+//                score;
 //            std::cout << static_cast<int>(w._win) << " " << w._place << "\n";
 			return w._win;
 		}
@@ -256,35 +317,29 @@ player node::simulate()
 		{
 			for (position p = 0; p < MAP_SIZE; p++)
 				if (t_map[p] != player::EMPTY)
-					score[p] = -1;
+					score[p]._max = -1;
 
-			auto max_score = score.begin();
-			int  max_counter = 0;
-			for (auto it = score.begin(); it != score.end(); ++it)
-			{
-				if (*max_score < *it)
-					max_score = it;
-				if (*max_score == *it)
-					max_counter++;
-			}
-			position pos = static_cast<int>(max_score - score.begin());
-			for (auto it = score.begin(); it != score.end(); ++it)
-			{
-				if (*it == *max_score)
-				{
-					pos = static_cast<int>(it - score.begin());
-					if (random_break(1.0 / max_counter--))
-						break;
-				}
-			}
+			auto max_score = std::max_element(score.begin(), score.end(), [](auto const &lhs, auto const &rhs){
+				return lhs._max == rhs._max? lhs._total < rhs._total: lhs._max < rhs._max;
+			});
 
-			t_map.insert(std::make_pair(pos, cur));
+			if (max_score->_max == -1)
+                return player::EMPTY;
+            
+            std::deque<decltype(max_score)> best_colletion;
+            for (auto it = score.begin(); it != score.end(); ++it)
+                if (it->_max == max_score->_max && it->_total == max_score->_total)
+					best_colletion.push_front(it);
+                
+            auto avatar = best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
+			t_map.insert(std::make_pair(avatar - score.begin(), cur));
 		}
 		catch (...)
 		{
 			return player::EMPTY;
 		}
 	}
+    return player::EMPTY;
 }
 
 void node::propagate(player winner)
@@ -304,15 +359,15 @@ position node::best_child() const
 		auto rw = rhs.second->win_percentage();
 		auto lu = lhs.second->UCT();
 		auto ru = rhs.second->UCT();
-		if (std::abs(lw - rw) < 0.01)
+		if (std::abs(lu - ru) < 0.01)
 		{
-			if (std::abs(lu - ru) < 0.01)
+			if (std::abs(lw - rw) < 0.01)
 				return lhs.first < rhs.first;
 			else
-			    return lu < ru;
+			    return lw < rw;
 		}
 
-		return lw < rw;
+		return lu < ru;
 	})->second->_pos;
 }
 
