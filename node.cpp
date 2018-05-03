@@ -93,9 +93,7 @@ int node::score_atk_dir(dir d) const
         else if (_map[mid] != player::EMPTY)
             break;
 
-
-
-        if (cont >= 5)
+        if (cont >= 4)
             throw winner(_player, mid);
         mid = NAB[mid][d];
     }
@@ -117,7 +115,7 @@ int node::bonus_score() const
     sum += (RATE[score_atk_dir(RIGHT_DOWN)+1]);
     sum += (RATE[score_atk_dir(RIGHT)    + 1]);
     sum += (RATE[score_atk_dir(RIGHT_UP) + 1]);
-	return sum * 200;
+	return sum;
 }
 
 int node::score() const

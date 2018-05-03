@@ -15,7 +15,7 @@ auto filesize(const char name[])
 	return i.tellg();
 }
 
-int __main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	quintuple_go::mcts tree;
 	std::thread th([&tree]{ tree.run(); });
@@ -42,7 +42,7 @@ int __main(int argc, char *argv[])
 
 				tree.load(arr);
 
-				while (timer() < 5s)
+				while (timer() < 4.9s)
 					std::this_thread::yield();				
 
 				std::cout << "out\n";
