@@ -5,7 +5,7 @@ namespace quintuple_go
 
 position mcts::best_step() const
 {
-	return root.best_child();
+	return root->best_child();
 }
 
 
@@ -16,14 +16,26 @@ void mcts::reset()
 
 void mcts::load(state & new_state)
 {
-	std::lock_guard<std::mutex> guard(root_mtx);
-    for (auto &p : new_state)
-        if (p != player::EMPTY)
+    state const &old_state = root->get_const_state();
+    position op_pos = OUT_OF_BOUND;
+    bool empty = true;
+    for (position p = 0; p < MAP_SIZE; p++)
+    {
+        if (new_state[p] != player::EMPTY)
+            empty = false;
+
+        if (old_state[p] != new_state[p])
         {
-            root.set_state(new_state);
-            return;
+            op_pos = p;
+            break;
         }
-    root.empty_start();
+    }
+	std::lock_guard<std::mutex> guard(root_mtx);
+
+    if (not empty)
+        root->set_state(new_state, root, op_pos);
+    else
+        root->empty_start();
 }
 
 void mcts::run(long times)
@@ -32,11 +44,12 @@ void mcts::run(long times)
 	{
 		std::cout << "round #" << count << "\n";
 		std::lock_guard<std::mutex> guard(root_mtx);
-		node& n = root.select();
+		node& n = root->select();
 		node& child = n.expand();
 		player winner = child.simulate();
 		child.propagate(winner);
 	}
+    std::cout << root->best_child() << "\n";
 }
 
 }

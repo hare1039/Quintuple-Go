@@ -81,7 +81,7 @@ int node::score_def_dir(dir d) const
     }
 	return cont;
 }
-    
+
 int node::score_atk_dir(dir d) const
 {
     int cont = 0;
@@ -92,16 +92,16 @@ int node::score_atk_dir(dir d) const
             cont++;
         else if (_map[mid] != player::EMPTY)
             break;
-        
 
-        
+
+
         if (cont >= 5)
             throw winner(_player, mid);
         mid = NAB[mid][d];
     }
     return cont;
 }
-	
+
 int node::bonus_score() const
 {
 	int sum = 0;
@@ -186,7 +186,7 @@ void node::scan_dir(state_view const & t_map,
 		{
 			player prev = t_map[NAB[walker][i_direc]];
 			player play = t_map[walker];
-			
+
 			if (prev == player::EMPTY && play == player::EMPTY)
 				counter = 0;
 
@@ -198,14 +198,14 @@ void node::scan_dir(state_view const & t_map,
 
 			else
 				counter += 2;
-				
+
 
 			if (counter >= 10)
 				throw winner(me, walker);
 			t_score[walker] += counter;
 			score[walker]._total += counter;
 		}
-	    
+
 		for (counter = 0; NAB[walker][i_direc] != OUT_OF_BOUND; walker = NAB[walker][i_direc])
 		{
 			player prev = t_map[NAB[walker][direc]];
@@ -215,20 +215,20 @@ void node::scan_dir(state_view const & t_map,
 
 			else if ((prev == me && play == op) || (prev == player::EMPTY && play == op))
 				counter = 1;
-			
+
 			else if ((prev == op && play == me) || (prev == player::EMPTY && play == me))
 				counter = 2;
-			
+
 			else
 				counter += 2;
-				
+
 			if (counter >= 10)
 				throw winner(me, walker);
 			t_score[walker] += counter;
 			score[walker]._total += counter;
 		}
 	}
-	
+
 	for (int i = 0; i < t_score.size(); i++)
 		score[i]._max = std::max(score[i]._max, t_score[i]);
 }
@@ -325,12 +325,12 @@ player node::simulate()
 
 			if (max_score->_max == -1)
                 return player::EMPTY;
-            
+
             std::deque<decltype(max_score)> best_colletion;
             for (auto it = score.begin(); it != score.end(); ++it)
                 if (it->_max == max_score->_max && it->_total == max_score->_total)
 					best_colletion.push_front(it);
-                
+
             auto avatar = best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
 			t_map.insert(std::make_pair(avatar - score.begin(), cur));
 		}
@@ -377,6 +377,24 @@ void node::empty_start()
     p->_parent = this;
     _child.insert(std::make_pair(108, std::move(p)));
 }
+
+void node::set_state(state & s, std::unique_ptr<node> & root, position p)
+{
+    std::swap(get_state(), s);
+	for (auto & ch: _child)
+	{
+		if (ch.second->_pos == p)
+		{
+			std::swap(ch.second, root);
+			root->_parent = nullptr;
+			return;
+		}
+	}
+
+    std::unique_ptr<node> n (new node{p, player::TWO});
+	std::swap(n, root);
+}
+
 
 
 }

@@ -11,9 +11,10 @@ namespace quintuple_go
 
 class mcts
 {
-	node root = node(-1, player::TWO);
+    std::unique_ptr<node> root;
 	std::mutex root_mtx;
 public:
+    mcts():  root(new node(-1, player::TWO)) {};
 	position best_step() const;
 	void     reset();
 	void     load(state &);

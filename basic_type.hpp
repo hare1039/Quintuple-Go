@@ -11,7 +11,7 @@ namespace quintuple_go
 {
 
 constexpr  int MAP_SIZE = 217;
-using      position = int;	
+using      position = int;
 enum class player {EMPTY, ONE, TWO};
 using      state    = std::array<player, MAP_SIZE>;
 
@@ -41,7 +41,7 @@ T random_gen(std::initializer_list<std::pair<T, double>> l)
             break;
         else
             prev_pos *= selected->second;
-    
+
     return selected == l.end()? (--selected)->first: selected->first;
 }
 constexpr dir inverse(dir d) { return static_cast<dir>((static_cast<int>(d) + 3) % 6);}

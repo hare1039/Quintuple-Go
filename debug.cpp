@@ -18,10 +18,10 @@ int main(int argc, char *argv[])
 			std::cin >> value;
 			i = static_cast<quintuple_go::player>(value);
 		}
-        
+
 		tree.load(arr);
-        
-		tree.run(500);
+
+		tree.run(10000);
 		std::cout << tree.best_step() << "\n";
 	}
 	return 0;

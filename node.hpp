@@ -36,10 +36,11 @@ public:
 	node&  expand();
 	player simulate();
 	void   propagate(player winner);
-	void   set_state(state &s) { std::swap(get_state(), s); }
+	void   set_state(state & s, std::unique_ptr<node> & root, position p);
+    state const & get_const_state() { return get_state(); }
 
 	position best_child() const;
-	void   empty_start();
+	void     empty_start();
 private:
 	double UCT() const;
 	int    bonus_score() const;
