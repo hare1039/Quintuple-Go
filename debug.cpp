@@ -6,7 +6,7 @@
 
 #include "mcts.hpp"
 
-int main(int argc, char *argv[])
+int __main(int argc, char *argv[])
 {
 	quintuple_go::mcts tree;
 	for (;;)

@@ -12,13 +12,14 @@ namespace quintuple_go
 class mcts
 {
     std::unique_ptr<node> root;
-	std::mutex root_mtx;
+	std::mutex mutable root_mtx;
 public:
-    mcts():  root(new node(-1, player::TWO)) {};
-	position best_step() const;
-	void     reset();
-	void     load(state &);
-	void     run(long i = -1);
+    mcts():     root(new node(-1, player::TWO)) {};
+	position    best_step() const;
+	void        reset();
+	void        load(state &);
+	void        run(ulli i = std::numeric_limits<ulli>::max());
+	std::mutex  ready_mtx;
 };
 
 

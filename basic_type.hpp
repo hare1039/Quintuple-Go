@@ -44,6 +44,7 @@ T random_gen(std::initializer_list<std::pair<T, double>> l)
 
     return selected == l.end()? (--selected)->first: selected->first;
 }
+using ulli = unsigned long long int;
 constexpr dir inverse(dir d) { return static_cast<dir>((static_cast<int>(d) + 3) % 6);}
 
 }

@@ -18,6 +18,7 @@ auto filesize(const char name[])
 int main(int argc, char *argv[])
 {
 	quintuple_go::mcts tree;
+	tree.ready_mtx.lock();
 	std::thread th([&tree]{ tree.run(); });
 	int pref_line_num = -1;
 	for (;;)
@@ -27,11 +28,13 @@ int main(int argc, char *argv[])
 			using namespace std::literals;
 			auto timer = [_s_ = std::chrono::high_resolution_clock::now()]
 				{return std::chrono::high_resolution_clock::now() - _s_;};
+
 			std::fstream state(STATE_FILE, std::ios::in);
 			int line_num;
 			state >> line_num;
 			if (pref_line_num != line_num)
 			{
+				std::cout << "File can read\n";
 				quintuple_go::state arr;
 				for (auto &i : arr)
 				{
@@ -41,11 +44,12 @@ int main(int argc, char *argv[])
 				}
 
 				tree.load(arr);
-
+				std::cout << "Tree loaded\n";
+				tree.ready_mtx.unlock();
 				while (timer() < 4.9s)
-					std::this_thread::yield();				
+					std::this_thread::yield();
 
-				std::cout << "out\n";
+				std::cout << "result: " << tree.best_step();
 				std::fstream result(STEP_FILE, std::ios::out);
 				result << line_num << " " << tree.best_step();
 				pref_line_num = line_num;
