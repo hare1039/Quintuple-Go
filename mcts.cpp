@@ -28,7 +28,7 @@ void mcts::load(state new_state)
         if (new_state[p] != player::EMPTY)
             empty = false;
 
-        if (old_state[p] != new_state[p])
+        if (old_state[p] != new_state[p] && new_state[p] == player::TWO)
         {
             op_pos = p;
             break;

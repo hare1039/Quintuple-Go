@@ -35,6 +35,7 @@ private:
 	state_view   _map;
 	std::set<position> _allocated_child;
 	std::multimap<int, std::unique_ptr<node>, std::greater<int>> _child;
+    bool         _already_win = false;
 public:
 	node(position pos,
 		 player p,

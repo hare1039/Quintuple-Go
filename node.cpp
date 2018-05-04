@@ -109,12 +109,12 @@ int node::bonus_score() const
 	sum += (RATE[score_def_dir(RIGHT_DOWN)]);
 	sum += (RATE[score_def_dir(RIGHT)]);
 	sum += (RATE[score_def_dir(RIGHT_UP)]);
-//    sum += (RATE[score_atk_dir(LEFT_UP)] * 2);
-//    sum += (RATE[score_atk_dir(LEFT)   ] * 2);
-//    sum += (RATE[score_atk_dir(LEFT_DOWN)] * 2);
-//    sum += (RATE[score_atk_dir(RIGHT_DOWN)]* 2);
-//    sum += (RATE[score_atk_dir(RIGHT)    ] * 2);
-//    sum += (RATE[score_atk_dir(RIGHT_UP)]  * 2);
+    sum += (RATE[score_atk_dir(LEFT_UP)] * 2);
+    sum += (RATE[score_atk_dir(LEFT)   ] * 2);
+    sum += (RATE[score_atk_dir(LEFT_DOWN)] * 2);
+    sum += (RATE[score_atk_dir(RIGHT_DOWN)]* 2);
+    sum += (RATE[score_atk_dir(RIGHT)    ] * 2);
+    sum += (RATE[score_atk_dir(RIGHT_UP)]  * 2);
 	return sum;
 }
 
@@ -155,6 +155,7 @@ void node::explore_node(position pos, dir direction, int step = 2)
 			{
 				decltype(_child){}.swap(_child);
 			}
+            p->_already_win = true;
 			_child.insert(std::make_pair(std::numeric_limits<int>::max(), std::move(p)));
 			_allocated_child.insert(w._place);
 //			std::cout << "winner " << static_cast<int>(w._win) << w._place << "\n";
@@ -235,8 +236,9 @@ void node::scan_dir(state_view const & t_map,
 node& node::select(int threshold)
 {
 //	std::cout << "select\n";
-	if (_child.empty())
+	if (_child.empty() || _already_win)
 		return *this;
+    
 
 	int counter = 0;
 	for (auto & c: _child)
@@ -255,6 +257,8 @@ node& node::select(int threshold)
 node& node::expand()
 {
 //	std::cout << "expand\n";
+    if (_already_win)
+        return *this;
 	for (position pos = 0; pos < MAP_SIZE; pos++)
 	{
 		if (_map[pos] != player::EMPTY)
@@ -272,6 +276,9 @@ node& node::expand()
 
 player node::simulate()
 {
+    if (_already_win)
+        return _player;
+    
 	state_view t_map{_map};
 	/*
 	  model:         UP,     UP_LEFT,      DOWN_LEFT,      DOWN,   DOWN_RIGHT,    UP_RIGHT
@@ -314,8 +321,9 @@ player node::simulate()
             for (auto it = score.begin(); it != score.end(); ++it)
                 if (it->_max == max_score->_max && it->_total == max_score->_total)
 					best_colletion.push_front(it);
-
-            auto avatar = best_colletion.front();//best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
+//best_colletion.front();//
+            auto avatar = best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
+//            std::cout << "[ " << avatar - score.begin() << ", " << static_cast<int>(cur) << "\n";
 			t_map.insert(std::make_pair(avatar - score.begin(), cur));
 		}
 		catch (...)

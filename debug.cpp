@@ -22,7 +22,7 @@ int __main(int argc, char *argv[])
 		tree.load(arr);
 
 		tree.run(10000);
-		std::cout << tree.best_step() << "\n";
+//		std::cout << tree.best_step() << "\n";
 	}
 	return 0;
 }
