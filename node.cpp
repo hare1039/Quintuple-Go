@@ -363,14 +363,14 @@ std::deque<node::child_final_info> node::best_child() const
 		auto rw = rhs._win;
 		auto lu = lhs._UCT;
 		auto ru = rhs._UCT;
-		if (std::abs(lu - ru) < 0.01)
+		if (std::abs(lw - rw) < 0.01)
 		{
-			if (std::abs(lw - rw) < 0.01)
+			if (std::abs(lu - ru) < 0.01)
 				return lhs._score > rhs._score;
 			else
-			    return lw > rw;
+			    return lu > ru;
 		}
-		return lu > ru;
+		return lw > rw;
 	});
 
 	for (auto &s : candidate)
