@@ -15,7 +15,7 @@ void mcts::reset()
 	ready_mtx.lock();
 	std::unique_ptr<node> n(new node(-1, player::TWO));
 	state s{};
-	root->set_state(s, n, OUT_OF_BOUND);
+	root->set_state(s, n);
 }
 
 void mcts::load(state new_state)
@@ -37,7 +37,7 @@ void mcts::load(state new_state)
 	std::lock_guard<std::mutex> guard(root_mtx);
 
     if (not empty)
-        root->set_state(new_state, root, op_pos);
+        root->set_state(new_state, root);
     else
         root->empty_start();
 }

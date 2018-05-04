@@ -25,6 +25,19 @@ public:
 		int  _score = 0;
 	        void show() { std::cout << "pos: " << _pos << ", win: " << _win << ", uct: " << _UCT << ", score: " << _score << "\n"; }
 	};
+    struct winner : public std::exception
+    {
+        player _win;
+        position _place;
+        winner() = default;
+        winner(player p, position pl): _win(p), _place(pl) {}
+        const char * what () const noexcept { return "Found winner"; }
+    };
+    struct score_pair
+    {
+        int _max   = 0;
+        int _total = 0;
+    };
 private:
 	position     _pos;
 	player       _player;
@@ -35,7 +48,7 @@ private:
 	state_view   _map;
 	std::set<position> _allocated_child;
 	std::multimap<int, std::unique_ptr<node>, std::greater<int>> _child;
-    bool         _already_win = false;
+    std::pair<bool, winner> _already_win{false, winner{player::EMPTY, OUT_OF_BOUND}};
 public:
 	node(position pos,
 		 player p,
@@ -43,11 +56,11 @@ public:
 												   _player{p},
 												   _map{(sv)} { _map.insert(std::make_pair(pos, p)); }
 
-	node&  select(int threshold = 30);
+	node&  select(int threshold = 25);
 	node&  expand();
 	player simulate();
 	void   propagate(player winner);
-	void   set_state(state & s, std::unique_ptr<node> & root, position p);
+	void   set_state(state & s, std::unique_ptr<node> & root);
     state const & get_const_state() { return get_state(); }
 
 	std::deque<child_final_info>     best_child() const;
@@ -64,22 +77,6 @@ private:
 	int    sum_dir(position start, dir first, dir second, dir scan) const;
 	int    sum_oneline(position, dir, player) const;
 	void   explore_node(position, dir, int);
-
-	struct winner : public std::exception
-	{
-		player _win;
-		position _place;
-		winner() = default;
-		winner(player p, position pl): _win(p), _place(pl) {}
-		const char * what () const noexcept { return "Found winner"; }
-	};
-    struct score_pair
-    {
-        int _max   = 0;
-        int _total = 0;
-    };
-
-
 	static
 	void scan_dir(state_view const & t_map,
 				  player me,

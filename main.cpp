@@ -7,8 +7,8 @@
 #include "mcts.hpp"
 #include "basic_type.hpp"
 
-constexpr auto STATE_FILE = "state_8.txt";
-constexpr auto STEP_FILE  = "move_8.txt";
+constexpr auto STATE_FILE = "state_7.txt";
+constexpr auto STEP_FILE  = "move_7.txt";
 
 auto filesize(const char name[])
 {
@@ -51,11 +51,9 @@ int main(int argc, char *argv[])
 				tree.load(arr);
 				std::cout << "Tree loaded\n";
 				tree.ready_mtx.unlock();
-				while (timer() < 0.3s)
-					std::this_thread::yield();
 
-				while (timer() < 4.8s)
-					std::this_thread::yield();
+                std::this_thread::sleep_for(4.9s - timer());
+
 				auto c = tree.best_step();
 				bool outputed = false;
 				for (auto &p : c)
@@ -81,7 +79,7 @@ int main(int argc, char *argv[])
 
 
 				 	auto it = empty.begin();
-					int count = quintuple_go::random_in(empty.size() - 1);
+					int count = quintuple_go::random_in(static_cast<int>(empty.size() - 1));
 					while (count--)
 						++it;
 					int v = *it;
@@ -95,6 +93,5 @@ int main(int argc, char *argv[])
 		else
 			std::this_thread::yield();
 	}
-	th.join();
 	return 0;
 }

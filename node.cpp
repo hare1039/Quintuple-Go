@@ -155,7 +155,8 @@ void node::explore_node(position pos, dir direction, int step = 2)
 			{
 				decltype(_child){}.swap(_child);
 			}
-            p->_already_win = true;
+            p->_already_win.first  = true;
+            p->_already_win.second = w;
 			_child.insert(std::make_pair(std::numeric_limits<int>::max(), std::move(p)));
 			_allocated_child.insert(w._place);
 //			std::cout << "winner " << static_cast<int>(w._win) << w._place << "\n";
@@ -236,7 +237,7 @@ void node::scan_dir(state_view const & t_map,
 node& node::select(int threshold)
 {
 //	std::cout << "select\n";
-	if (_child.empty() || _already_win)
+	if (_child.empty() || _already_win.first)
 		return *this;
     
 
@@ -257,7 +258,7 @@ node& node::select(int threshold)
 node& node::expand()
 {
 //	std::cout << "expand\n";
-    if (_already_win)
+    if (_already_win.first)
         return *this;
 	for (position pos = 0; pos < MAP_SIZE; pos++)
 	{
@@ -276,8 +277,8 @@ node& node::expand()
 
 player node::simulate()
 {
-    if (_already_win)
-        return _player;
+    if (_already_win.first)
+        return _already_win.second._win;
     
 	state_view t_map{_map};
 	/*
@@ -301,7 +302,7 @@ player node::simulate()
 		}
 		catch (winner const &w)
 		{
-		  return w._win;
+			return w._win;
 		}
 
 		try
@@ -374,7 +375,7 @@ std::deque<node::child_final_info> node::best_child() const
 
 	for (auto &s : candidate)
 	{
-            s.show();
+		s.show();
 	}
 	return candidate;
 }
@@ -386,20 +387,10 @@ void node::empty_start()
     _child.insert(std::make_pair(108, std::move(p)));
 }
 
-void node::set_state(state & s, std::unique_ptr<node> & root, position p)
+void node::set_state(state & s, std::unique_ptr<node> & root)
 {
     std::swap(get_state(), s);
-	for (auto & ch: _child)
-	{
-		if (ch.second->_pos == p)
-		{
-			std::swap(ch.second, root);
-			root->_parent = nullptr;
-			return;
-		}
-	}
-
-    std::unique_ptr<node> n (new node{p, player::TWO});
+    std::unique_ptr<node> n (new node{OUT_OF_BOUND, player::TWO});
 	std::swap(n, root);
 }
 
@@ -418,7 +409,7 @@ position node::his(state_view t_map)
 		for (auto i = 0; i < score.size(); i++)
 		    std::cout << score[i]._max << " ";
 		std::cout << "---\n";
-  }
+	}
 	catch (winner const & w)
 	{
 		return w._place;
@@ -430,20 +421,20 @@ position node::his(state_view t_map)
 				score[p]._max = -1;
 
 		auto max_score = std::max_element(score.begin(), score.end(), [](auto const &lhs, auto const &rhs){
-			return lhs._max == rhs._max? lhs._total < rhs._total: lhs._max < rhs._max;
-		});
+				return lhs._max == rhs._max? lhs._total < rhs._total: lhs._max < rhs._max;
+			});
 
 		if (max_score->_max == -1)
-							return 0;
+			return 0;
 
-					std::deque<decltype(max_score)> best_colletion;
-					for (auto it = score.begin(); it != score.end(); ++it)
-							if (it->_max == max_score->_max && it->_total == max_score->_total)
+		std::deque<decltype(max_score)> best_colletion;
+		for (auto it = score.begin(); it != score.end(); ++it)
+			if (it->_max == max_score->_max && it->_total == max_score->_total)
 				best_colletion.push_front(it);
-
-					auto avatar =  best_colletion.front();//best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
+// best_colletion.front();
+		auto avatar = best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
 		t_map.insert(std::make_pair(avatar - score.begin(), cur));
-		return avatar - score.begin();
+		return static_cast<int>(avatar - score.begin());
 	}
 	catch (...)
 	{
