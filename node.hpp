@@ -16,6 +16,16 @@ namespace quintuple_go
 
 class node
 {
+public:
+	struct child_final_info
+	{
+		double _win = 0;
+		double _UCT = 0;
+		position _pos = OUT_OF_BOUND;
+		int  _score = 0;
+	        void show() { std::cout << "pos: " << _pos << ", win: " << _win << ", uct: " << _UCT << ", score: " << _score << "\n"; }
+	};
+private:
 	position     _pos;
 	player       _player;
 
@@ -32,26 +42,28 @@ public:
 												   _player{p},
 												   _map{(sv)} { _map.insert(std::make_pair(pos, p)); }
 
-	node&  select(int threshold = 10);
+	node&  select(int threshold = 30);
 	node&  expand();
 	player simulate();
 	void   propagate(player winner);
 	void   set_state(state & s, std::unique_ptr<node> & root, position p);
     state const & get_const_state() { return get_state(); }
 
-	position best_child() const;
+	std::deque<child_final_info>     best_child() const;
 	void     empty_start();
+	static
+	position his(state_view t_map);
 private:
 	double UCT() const;
 	int    bonus_score() const;
     int    score_def_dir(dir d) const;
     int    score_atk_dir(dir d) const;
 	int    score() const;
-	double win_percentage() const {	return _total == 0? 0.0: _win / _total; }
+  double win_percentage() const { return _total == 0? 0.0: static_cast<double>(_win) / _total; }
 	int    sum_dir(position start, dir first, dir second, dir scan) const;
 	int    sum_oneline(position, dir, player) const;
 	void   explore_node(position, dir, int);
-	
+
 	struct winner : public std::exception
 	{
 		player _win;
@@ -65,6 +77,8 @@ private:
         int _max   = 0;
         int _total = 0;
     };
+
+
 	static
 	void scan_dir(state_view const & t_map,
 				  player me,
@@ -75,9 +89,10 @@ private:
 				  bool early_stop = false);
 	static player flip(player p) { return (p == player::EMPTY)? player::EMPTY: (p == player::ONE)? player::TWO: player::ONE;}
 	static state& get_state() { static state _s; return _s;}
+
 };
 
-	
+
 }
 
 #endif //__NODE_HPP__

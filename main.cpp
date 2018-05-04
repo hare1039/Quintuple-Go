@@ -5,9 +5,10 @@
 #include <string>
 
 #include "mcts.hpp"
+#include "basic_type.hpp"
 
-constexpr auto STATE_FILE = "state_07.txt";
-constexpr auto STEP_FILE  = "move_07.txt";
+constexpr auto STATE_FILE = "state_8.txt";
+constexpr auto STEP_FILE  = "move_8.txt";
 
 auto filesize(const char name[])
 {
@@ -34,6 +35,10 @@ int main(int argc, char *argv[])
 			state >> line_num;
 			if (pref_line_num != line_num)
 			{
+				if (pref_line_num > line_num)
+				{
+					tree.reset();
+				}
 				std::cout << "File can read\n";
 				quintuple_go::state arr;
 				for (auto &i : arr)
@@ -46,13 +51,45 @@ int main(int argc, char *argv[])
 				tree.load(arr);
 				std::cout << "Tree loaded\n";
 				tree.ready_mtx.unlock();
-				while (timer() < 4.9s)
+				while (timer() < 0.3s)
 					std::this_thread::yield();
 
-				std::cout << "result: " << tree.best_step();
-				std::fstream result(STEP_FILE, std::ios::out);
-				result << line_num << " " << tree.best_step();
-				pref_line_num = line_num;
+				while (timer() < 4.8s)
+					std::this_thread::yield();
+				auto c = tree.best_step();
+				bool outputed = false;
+				for (auto &p : c)
+				{
+					if (arr[p._pos] == quintuple_go::player::EMPTY)
+					{
+						std::cout << "result: " << p._pos << "\n";
+						std::fstream result(STEP_FILE, std::ios::out);
+						result << line_num << " " << p._pos;
+						pref_line_num = line_num;
+						outputed = true;
+						break;
+					}
+				}
+				if (not outputed)
+				{
+					std::set<int> empty;
+					for (int i = 0; i < arr.size(); i++)
+					{
+						if (arr[i] == quintuple_go::player::EMPTY)
+							empty.insert(i);
+					}
+
+
+				 	auto it = empty.begin();
+					int count = quintuple_go::random_in(empty.size() - 1);
+					while (count--)
+						++it;
+					int v = *it;
+					std::cout << "guessed result: " << v << "\n";
+					std::fstream result(STEP_FILE, std::ios::out);
+					result << line_num << " " << v << "\n";
+					pref_line_num = line_num;
+				}
 			}
 		}
 		else

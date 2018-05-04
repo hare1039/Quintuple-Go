@@ -30,7 +30,7 @@ public:
 extern std::array<neighbours, MAP_SIZE> const NAB;
 extern std::array<int, 9> const RATE;
 bool random_break(double p);
-bool random_in(int max);
+int  random_in(int max);
 template<typename T>
 T random_gen(std::initializer_list<std::pair<T, double>> l)
 {

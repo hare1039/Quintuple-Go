@@ -3,7 +3,7 @@
 namespace quintuple_go
 {
 
-position mcts::best_step() const
+std::deque<node::child_final_info> mcts::best_step() const
 {
 	std::lock_guard<std::mutex> guard(root_mtx);
 	return root->best_child();
@@ -12,10 +12,13 @@ position mcts::best_step() const
 
 void mcts::reset()
 {
-
+	ready_mtx.lock();
+	std::unique_ptr<node> n(new node(-1, player::TWO));
+	state s{};
+	root->set_state(s, n, OUT_OF_BOUND);
 }
 
-void mcts::load(state & new_state)
+void mcts::load(state new_state)
 {
     state const &old_state = root->get_const_state();
     position op_pos = OUT_OF_BOUND;

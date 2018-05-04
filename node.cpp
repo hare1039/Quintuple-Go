@@ -94,7 +94,7 @@ int node::score_atk_dir(dir d) const
             break;
 
         if (cont >= 4)
-            throw winner(_player, mid);
+	  throw winner(_player, mid);
         mid = NAB[mid][d];
     }
     return cont;
@@ -109,12 +109,12 @@ int node::bonus_score() const
 	sum += (RATE[score_def_dir(RIGHT_DOWN)]);
 	sum += (RATE[score_def_dir(RIGHT)]);
 	sum += (RATE[score_def_dir(RIGHT_UP)]);
-    sum += (RATE[score_atk_dir(LEFT_UP)  + 1]);
-    sum += (RATE[score_atk_dir(LEFT)     + 1]);
-    sum += (RATE[score_atk_dir(LEFT_DOWN)+ 1]);
-    sum += (RATE[score_atk_dir(RIGHT_DOWN)+1]);
-    sum += (RATE[score_atk_dir(RIGHT)    + 1]);
-    sum += (RATE[score_atk_dir(RIGHT_UP) + 1]);
+//    sum += (RATE[score_atk_dir(LEFT_UP)] * 2);
+//    sum += (RATE[score_atk_dir(LEFT)   ] * 2);
+//    sum += (RATE[score_atk_dir(LEFT_DOWN)] * 2);
+//    sum += (RATE[score_atk_dir(RIGHT_DOWN)]* 2);
+//    sum += (RATE[score_atk_dir(RIGHT)    ] * 2);
+//    sum += (RATE[score_atk_dir(RIGHT_UP)]  * 2);
 	return sum;
 }
 
@@ -291,24 +291,10 @@ player node::simulate()
 			scan_dir(t_map, cur, 208,      RIGHT,    LEFT_UP, score, true);
 			scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, score, true);
 			scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, score, true);
-//            t_map.show();
-//            for (auto i = 0; i < score.size(); i++)
-//                std::cout << score[i] << " ";
-//            std::cout << "\n";
 		}
 		catch (winner const &w)
 		{
-//            t_map.show();
-//            for (auto i = 0; i < score.size(); i++)
-//                std::cout << score[i]._max << " ";
-//            std::cout << "\n---\n";
-//            for (auto i = 0; i < score.size(); i++)
-//                std::cout << score[i]._total << " ";
-//            std::cout << "\n+++\n";
-//            if (w._place == 19)
-//                score;
-//            std::cout << static_cast<int>(w._win) << " " << w._place << "\n";
-			return w._win;
+		  return w._win;
 		}
 
 		try
@@ -329,7 +315,7 @@ player node::simulate()
                 if (it->_max == max_score->_max && it->_total == max_score->_total)
 					best_colletion.push_front(it);
 
-            auto avatar = best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
+            auto avatar = best_colletion.front();//best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
 			t_map.insert(std::make_pair(avatar - score.begin(), cur));
 		}
 		catch (...)
@@ -350,23 +336,39 @@ void node::propagate(player winner)
 		_parent->propagate(winner);
 }
 
-position node::best_child() const
+std::deque<node::child_final_info> node::best_child() const
 {
-	return std::max_element(_child.begin(), _child.end(), [](auto const &lhs, auto const &rhs) {
-		auto lw = lhs.second->win_percentage();
-		auto rw = rhs.second->win_percentage();
-		auto lu = lhs.second->UCT();
-		auto ru = rhs.second->UCT();
+	std::deque<child_final_info> candidate;
+
+	for (auto & p: _child)
+	{
+		candidate.push_back(child_final_info {
+			._win = p.second->win_percentage(),
+			._UCT = p.second->UCT(),
+			._pos = p.second->_pos,
+			._score = p.first,
+		});
+	}
+	std::sort(candidate.begin(), candidate.end(), [](auto const &lhs, auto const &rhs) {
+		auto lw = lhs._win;
+		auto rw = rhs._win;
+		auto lu = lhs._UCT;
+		auto ru = rhs._UCT;
 		if (std::abs(lu - ru) < 0.01)
 		{
 			if (std::abs(lw - rw) < 0.01)
-				return lhs.first < rhs.first;
+				return lhs._score > rhs._score;
 			else
-			    return lw < rw;
+			    return lw > rw;
 		}
+		return lu > ru;
+	});
 
-		return lu < ru;
-	})->second->_pos;
+	for (auto &s : candidate)
+	{
+            s.show();
+	}
+	return candidate;
 }
 
 void node::empty_start()
@@ -393,6 +395,52 @@ void node::set_state(state & s, std::unique_ptr<node> & root, position p)
 	std::swap(n, root);
 }
 
+position node::his(state_view t_map)
+{
+	player cur = player::ONE;
+	std::array<score_pair, MAP_SIZE> score{};
+	try
+	{
+		scan_dir(t_map, cur,   8,       LEFT, RIGHT_DOWN, score);
+		scan_dir(t_map, cur,   0,  LEFT_DOWN,      RIGHT, score);
+		scan_dir(t_map, cur, 100, RIGHT_DOWN,   RIGHT_UP, score);
+		scan_dir(t_map, cur, 208,      RIGHT,    LEFT_UP, score, true);
+		scan_dir(t_map, cur, 216,   RIGHT_UP,       LEFT, score, true);
+		scan_dir(t_map, cur, 116,    LEFT_UP,  LEFT_DOWN, score, true);
+		for (auto i = 0; i < score.size(); i++)
+		    std::cout << score[i]._max << " ";
+		std::cout << "---\n";
+  }
+	catch (winner const & w)
+	{
+		return w._place;
+	}
+	try
+	{
+		for (position p = 0; p < MAP_SIZE; p++)
+			if (t_map[p] != player::EMPTY)
+				score[p]._max = -1;
 
+		auto max_score = std::max_element(score.begin(), score.end(), [](auto const &lhs, auto const &rhs){
+			return lhs._max == rhs._max? lhs._total < rhs._total: lhs._max < rhs._max;
+		});
+
+		if (max_score->_max == -1)
+							return 0;
+
+					std::deque<decltype(max_score)> best_colletion;
+					for (auto it = score.begin(); it != score.end(); ++it)
+							if (it->_max == max_score->_max && it->_total == max_score->_total)
+				best_colletion.push_front(it);
+
+					auto avatar =  best_colletion.front();//best_colletion[random_in(static_cast<int>(best_colletion.size() - 1))];
+		t_map.insert(std::make_pair(avatar - score.begin(), cur));
+		return avatar - score.begin();
+	}
+	catch (...)
+	{
+		return 0;
+	}
+}
 
 }
